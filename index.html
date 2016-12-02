@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<title>Taisys Watch Portal</title>
+	<link rel="shortcut icon" href="./images/favicon.ico" type="image/x-icon" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <!-- Bootstrap Core CSS -->
+    <link href="css/bootstrap.min.css" rel="stylesheet" type="text/css">
+
+    <!-- Fonts -->
+    <link href="font-awesome/css/font-awesome.min.css" rel="stylesheet" type="text/css">
+	<link href="css/animate.css" rel="stylesheet" />
+    <!-- Squad theme CSS -->
+    <link href="css/style.css" rel="stylesheet">
+	<link href="color/default.css" rel="stylesheet">
+	<link rel="stylesheet" href="css/jquery-ui.min.css" type="text/css" />
+	<link rel="stylesheet" href="css/footable.core.min.css" type="text/css" /><!--處理table的RWD/sorting/filtering，參考網頁：https://github.com/bradvin/FooTable -->
+	<link rel="stylesheet" href="css/footable.standalone.min.css" type="text/css" /><!--處理table的RWD/sorting/filtering，參考網頁：https://github.com/bradvin/FooTable -->
+
+</head>
+
+<body id="page-top" data-spy="scroll" data-target=".navbar-custom">
+	<!-- Preloader -->
+	<div id="preloader">
+		<div id="load"></div>
+	</div>
+
+	<nav class="navbar navbar-custom navbar-fixed-top top-nav-collapse" role="navigation">
+		<div class="container">
+			<div class="navbar-header page-scroll">
+				<button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-main-collapse">
+					<i class="fa fa-bars"></i>
+				</button>
+				<div style="padding-top:10px;"><h3 id="pageName" style="margin:0 0 0 0;color:#FFFFFF;">Taisys Watch Portal</h3></div>
+			</div>
+				
+			<!-- Collect the nav links, forms, and other content for toggling -->
+			<div class="collapse navbar-collapse navbar-right navbar-main-collapse">
+				<ul id="main-menu" class="nav navbar-nav">
+				</ul>
+			</div>
+			<!-- /.navbar-collapse -->
+		</div>
+		<!-- /.container -->
+	</nav>
+
+	<!-- Section: main -->
+    <section id="intro" class="intro">
+		<div class="row">
+			<div class="col-md-6">
+				<label>Device ID:</label>
+				<input type="text" id="UUID" name="UUID" class="form-control" value="12345678" required autofocus>
+
+			</div><!-- <div class="col-md-12"> -->
+			<div class="col-md-6">
+				<label>Password:</label>
+				<input type="password" id="User_Password" name="User_Password" class="form-control" value="12345678" required>
+
+			</div><!-- <div class="col-md-12"> -->
+		</div><!-- <div class="row"> -->
+
+		<div class="row">
+			<div class="col-md-4">
+				<button type="button" class="btn btn-primary btn-block btn-flat" style="margin-top:20px;" onclick="doUserLogin();">Login</button>
+			</div><!-- <div class="col-md-12"> -->
+		</div><!-- <div class="row"> -->
+    </section>
+	<!-- /Section: main -->
+
+
+
+	<footer>
+		<div class="container">
+			<div class="row">
+				<div class="col-md-12 col-lg-12">
+					<div class="wow shake" data-wow-delay="0.4s">
+					<div class="page-scroll marginbot-30">
+						<a href="#intro" id="totop" class="btn btn-circle">
+							<i class="fa fa-angle-double-up animated"></i>
+						</a>
+					</div>
+					</div>
+					<p>&copy;Taisys Holding Co. Ltd. All rights reserved.</p>
+				</div>
+			</div>	
+		</div>
+	</footer>
+
+</body>
+</html>
+
+<!-- Core JavaScript Files -->
+<script src="js/jquery.min.js"></script>
+<script src="js/bootstrap.min.js"></script>
+<script src="js/jquery.easing.min.js"></script>	
+<script src="js/jquery.scrollTo.js"></script>
+<script src="js/wow.min.js"></script>
+<!-- Custom Theme JavaScript -->
+<script src="js/custom.js"></script>
+
+<script type="text/javascript" src="js/jquery-ui.min.js"></script>
+<script type="text/javascript" src="js/jquery.blockUI.js"></script>
+<script type="text/javascript" src="js/util.js"></script>
+<script type="text/javascript" src="js/jquery.cookie.js"></script><!--處理cookie，參考網頁：https://github.com/carhartl/jquery-cookie -->
+
+<script>
+	
+	function doUserLogin(){
+		var UUID = $('#UUID').val();
+		var User_Password = $('#User_Password').val();
+		if (beEmpty(UUID) || beEmpty(User_Password)){
+			msgBox('Input error, please check your input value.');
+			return false;
+		}
+
+		//先把cookie中的資料清除
+		setLocalValue("WatchUUID", "");
+
+		var sData = "UUID=" + UUID + "&User_Password=" + User_Password;
+		
+		getDataFromServer("ajaxDoUserLogin.jsp", sData, "json", function(data){
+			if (!data.resultCode || !data.resultText){
+				msgBox("Unable to get process result.");
+				return;
+			}else{
+				if (data.resultCode=="00000"){
+					setLocalValue("WatchUUID", UUID, null);	//僅於session中有效
+					location.href="show_watch_device.html?uuid=" + UUID;
+				}else if (data.resultCode=="00006"){
+					msgBox("ID or password is incorrect, please input correct values.");
+					return;
+				}else{
+					msgBox("Process failed: " + data.resultText);
+				}
+			}
+
+		});	//getDataFromServer("xxx.jsp", sData, "json", function(data){
+
+	}	//function doLogin(uid, upwd){
+
+</script>
+
