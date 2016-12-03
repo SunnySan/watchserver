@@ -30,23 +30,19 @@ out.clear();	//注意，一定要有out.clear();，要不然client端無法解�
 /*********************開始做事吧*********************/
 JSONObject obj=new JSONObject();
 
-String UUID		= getJsonValue(session.getAttribute("UserProfile"), "UUID");
-
+String UUID					= nullToString(request.getParameter("uuid"), "");
 if (beEmpty(UUID)){
-	UUID		= nullToString(request.getParameter("uuid"), "");
-	if (beEmpty(UUID)){
-		obj.put("resultCode", gcResultCodeNoLoginInfoFound);
-		obj.put("resultText", gcResultTextNoLoginInfoFound);
-		out.print(obj);
-		out.flush();
-		writeLog("error", obj.toString());
-		return;
-	}
+	obj.put("resultCode", gcResultCodeParametersValidationError);
+	obj.put("resultText", gcResultTextParametersValidationError);
+	out.print(obj);
+	out.flush();
+	return;
 }
 
 Hashtable	ht					= new Hashtable();
 String		sResultCode			= gcResultCodeSuccess;
 String		sResultText			= gcResultTextSuccess;
+String		sNow				= getDateTimeNow(gcDateFormatSlashYMDTime);
 String		s[][]				= null;
 String		s1[][]				= null;
 String		a[]					= null;
@@ -57,25 +53,37 @@ String		ss					= "";
 int			i					= 0;
 int			j					= 0;
 
-String		Default_Page		= "";
+String		sSMSC				= "gsmmodem";
+String		SMS_Body			= "Your device " + UUID + " is out of GeoFence. please visit http://cms.gslssd.com/watchserver/ to check it's location.";
+String		MSISDN				= "886986123101";
 
-sSQL = "SELECT A.GeoFence";
-sSQL += " FROM iot_device A";
-sSQL += " WHERE A.UUID='" + UUID + "'";
-
-//writeLog("info", sSQL);
-ht = getDBData(sSQL, gcDataSourceNameCMSIOT);
+ht = sendSMSFromSSD(sSMSC, SMS_Body, MSISDN, "", "", "");
 
 sResultCode = ht.get("ResultCode").toString();
 sResultText = ht.get("ResultText").toString();
 
-sSQL = "";
-if (sResultCode.equals(gcResultCodeSuccess)){	//有資料
-	s = (String[][])ht.get("Data");
-	obj.put("GeoFence", s[0][0]);
-	writeLog("info", "取得GeoFence資料：" + UUID + ": " + s[0][0]);
-}	//if (sResultCode.equals(gcResultCodeSuccess)){	//有資料
+if (sResultCode.equals(gcResultCodeSuccess)){	//成功
+	writeLog("info", "簡訊發送成功，UUID=" + UUID + "，Body=" + SMS_Body);
+}else{
+	writeLog("info", "簡訊發送失敗，UUID=" + UUID + "，Body=" + SMS_Body + "，ResultText=" + sResultText);
+}
 
+/*
+List<String> sSQLList	= new ArrayList<String>();
+
+sSQL = "UPDATE iot_device SET";
+sSQL += " GeoFence='" + "" + "'";
+sSQL += " WHERE UUID='" + UUID + "'";
+sSQLList.add(sSQL);
+writeLog("debug", "Send GeoFence outbound alert: " + sSQL);
+
+ht = updateDBData(sSQLList, gcDataSourceNameCMSIOT, false);
+sResultCode = ht.get("ResultCode").toString();
+sResultText = ht.get("ResultText").toString();
+if (!ht.get("ResultCode").toString().equals(gcResultCodeSuccess)){
+	writeLog("error", "Save GeoFence setting失敗：" + sResultCode + "-" + sSQL);
+}
+*/
 obj.put("resultCode", sResultCode);
 obj.put("resultText", sResultText);
 

@@ -685,6 +685,164 @@ public String getOneHoursAgoTime(){
 }
 
 /*********************************************************************************************************************/
+
+//透過SSD發送簡訊
+public Hashtable sendSMSFromSSD(String sSMSC, String sContent, String sReceiverMSISDN, String sIsOTA, String sDRURL, String sMessageID){
+	int			iChineseSMSLength	= 67;	//單則中文簡訊長度
+	int			iEnglishSMSLength	= 140;	//單則英文簡訊長度，原本應為160，因為可能為OTA的緣故故改為140
+	
+	Hashtable htResponse = new Hashtable();	//儲存回覆資料的 hash table	
+	String sPostContent = "";	//要 post 給 SSD 的內容
+
+	boolean bLongSMS = false;	//判斷是否為長簡訊
+	boolean bChineseSMS = true;	//判斷是否為中文簡訊
+	
+	String[]	sBody	= null;	//簡訊內容，若為長簡訊則將每則簡訊放入陣列
+	int			x		= 0;
+	int			y		= 0;
+	int			i		= 0;
+	String		s		= "";
+
+	//將簡訊內文以 Base64 進行編碼
+	String		sBodyBase64	= "";
+	
+	if (beEmpty(sIsOTA))		sIsOTA = "false";
+	if (beEmpty(sDRURL))		sDRURL = "#";
+	if (beEmpty(sMessageID))	sMessageID = generateRequestId();
+
+	bChineseSMS = hasChinese(sContent);	//判斷是否為中文簡訊
+
+	if (bChineseSMS == true){	//中文簡訊，看長度是否超過單則長度
+		if (sContent.length()>iChineseSMSLength){
+			bLongSMS = true;
+			x = sContent.length()/iChineseSMSLength;
+			y = sContent.length()%iChineseSMSLength;
+			System.out.println("x="+x);
+			System.out.println("y"+y);
+			if (y>0) x++;
+		}
+	}else{	//英文簡訊，看長度是否超過單則長度
+		if (sContent.length()>iEnglishSMSLength){
+			bLongSMS = true;
+			x = sContent.length()/iEnglishSMSLength;
+			y = sContent.length()%iEnglishSMSLength;
+			System.out.println("x="+x);
+			System.out.println("y"+y);
+			if (y>0) x++;
+		}
+	}	//if (bChineseSMS == true){	//中文簡訊，看長度是否超過單則長度
+
+	if (bLongSMS){	//長簡訊，將訊息切割為多則簡訊
+		sBody = new String[x];
+		for (i=0;i<sBody.length;i++){
+			if (bChineseSMS){
+				if (i==sBody.length-1 && y>0){
+					sBody[i] = sContent.substring(iChineseSMSLength*i);
+				}else{
+					sBody[i] = sContent.substring(iChineseSMSLength*i, iChineseSMSLength*(i+1));
+				}
+				System.out.println(i + "=" + sBody[i]);
+			}else{
+				if (i==sBody.length-1 && y>0){
+					sBody[i] = sContent.substring(iEnglishSMSLength*i);
+				}else{
+					sBody[i] = sContent.substring(iEnglishSMSLength*i, iEnglishSMSLength*(i+1));
+				}
+				System.out.println(i + "=" + sBody[i]);
+			}
+		}
+	}else{	//單則簡訊
+		sBody = new String[1];
+		sBody[0] = sContent;
+	}	//if (bLongSMS){	//長簡訊，將訊息切割為多則簡訊
+
+	//開始發送簡訊
+	writeLog("debug", "開始透過SSD發送簡訊，SMSC=:" + sSMSC);
+	for (i=0;i<sBody.length;i++){	//每次發送一筆簡訊
+		try{
+			sBodyBase64 = new sun.misc.BASE64Encoder().encode(sBody[i].getBytes("utf-8"));
+		}catch(UnsupportedEncodingException e){
+			sBodyBase64 = new sun.misc.BASE64Encoder().encode(sBody[i].getBytes());
+		}
+		
+		sPostContent = "{";
+		sPostContent += "\"content\":\"" + sBodyBase64 + "\",";
+		sPostContent += "\"receiverMsisdn\":\"" + sReceiverMSISDN + "\",";
+		sPostContent += "\"isSmpp\":\"" + sIsOTA + "\",";
+		sPostContent += "\"drUrl\":\"" + sDRURL + "\",";
+		sPostContent += "\"messageId\":\"" + sMessageID + "\"";
+		sPostContent += "}";
+		writeLog("debug", "sPostContent=:" + sPostContent);
+
+		try
+		{
+			URL u;
+			u = new URL(gcSSDSendSMSURL.replace("replaceSMSCID", sSMSC));
+			HttpURLConnection uc = (HttpURLConnection)u.openConnection();
+			uc.setRequestMethod("POST");
+			uc.setDoOutput(true);
+			uc.setDoInput(true);
+			uc.setRequestProperty("Content-Type", "application/json");
+			uc.setAllowUserInteraction(false);
+			DataOutputStream dstream = new DataOutputStream(uc.getOutputStream());
+			dstream.writeBytes(sPostContent);
+			dstream.close();
+			InputStream in = uc.getInputStream();
+			BufferedReader r = new BufferedReader(new InputStreamReader(in));
+			StringBuffer buf = new StringBuffer();
+			String line;
+			while ((line = r.readLine())!=null) {
+				buf.append(line);
+			}
+			in.close();
+			s = buf.toString();	//正常取得SSD回應值
+			writeLog("debug", "SSD return=" + s);
+			
+			htResponse.put("PostContent", sPostContent);	//傳給SSD的JSON
+			htResponse.put("response", s);	//SSD回應的JSON
+			
+			if (s.indexOf("Fail")>0){	//SSD有回應Fail
+				htResponse.put("ResultCode", gcResultCodeUnknownError);
+				htResponse.put("ResultText", s);
+				break;
+			}else{
+				htResponse.put("ResultCode", gcResultCodeSuccess);
+				htResponse.put("ResultText", gcResultTextSuccess);
+			}
+		}catch (IOException e){ 
+			s = "連線錯誤，訊息如下：" + e.toString();
+			writeLog("error", s);
+			htResponse.put("PostContent", sPostContent);	//傳給SSD的JSON
+			htResponse.put("response", "");
+			htResponse.put("ResultCode", "99998");
+			htResponse.put("ResultText", s);
+			break;
+		}
+	}	//for (i=0;i<sBody.length;i++){	//每次發送一筆簡訊
+	return htResponse;
+}	//public Hashtable sendSMSFromSSD(String sSMSC, String sContent, String sReceiverMSISDN, String sIsOTA, String sDRURL, String sMessageID){
+
+/*********************************************************************************************************************/
+
+public boolean hasChinese(String value) {	//判斷是否為中文字串
+	int n = 0;
+	int c = 0;
+	
+	if (value.length() == 0) {
+		return false;
+	}
+	for(n=0; n < value.length(); n++) {
+		//c=value.charCodeAt(n);
+		c=value.charAt(n);
+		if (c>127) {
+			return true;
+		}
+	}
+	return false;
+}	//public boolean hasChinese(String value) {	//判斷是否為中文字串
+
+/*********************************************************************************************************************/
+
 //讓單引號等字元可以寫入MySQL DB中，用法為escape(String)
 private static final HashMap<String,String> sqlTokens;
 private static java.util.regex.Pattern sqlTokenPattern;

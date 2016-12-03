@@ -16,6 +16,9 @@ public static final String	gcDefaultEmailFromAddressVAS			= "support@taisys.com"
 public static final String	gcDefaultEmailFromNameVAS				= "中華SSD專案通知";	//發送內部email的發信人名稱
 public static final String	gcDefaultEmailToAddressVAS				= "sunny.sun@taisys.com";	//發送內部email的收信人email address
 
+//SSD發送簡訊相關參數
+public static final String gcSSDSendSMSURL							= "http://sms.gslssd.com/smsChannel/replaceSMSCID/sendMessage"; //SSD發送簡訊API的URL，須將replaceSMSCID改為真正的SMSC ID
+
 //ResultCode及ResultText定義
 public static final String	gcResultCodeSuccess						= "00000";
 public static final String	gcResultTextSuccess						= "Success";

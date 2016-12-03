@@ -362,12 +362,19 @@
 	}	//function getGeoFenceSetting(){	//取得目前UUID的GeoFence設定
 
 	function doSubmitGeoFence(){	//將GeoFence座標儲存起來，同時通知device
+		/*
 		if (myGeoFenceBounds==null || beEmpty(myGeoFenceBounds)){
 			msgBox("Please draw a Rectangle first!");
 			return;
 		}
+		*/
 		
-		var sData = "GeoFence=" + JSON.stringify(myGeoFenceBounds);
+		var sData = "";
+		if (myGeoFenceBounds==null || beEmpty(myGeoFenceBounds)){
+			sData = "GeoFence=";
+		}else{
+			sData = "GeoFence=" + JSON.stringify(myGeoFenceBounds);
+		}
 		
 		getDataFromServer("ajaxDoSaveGeoFenceSetting.jsp", sData, "json", function(data){
 			if (!data.resultCode || !data.resultText){
@@ -377,7 +384,12 @@
 				if (data.resultCode=="00000"){
 					//資料已存至DB，發訊息給device
 					var obj = new Object();
-					obj.GeoFence = myGeoFenceBounds;
+					if (myGeoFenceBounds==null || beEmpty(myGeoFenceBounds)){
+						obj.GeoFence = "";
+					}else{
+						obj.GeoFence = myGeoFenceBounds;
+					}
+					
 					var payload= JSON.stringify(obj);
 				    var message = new Paho.MQTT.Message(payload);
 				    message.destinationName = TOPIC + uuid;
