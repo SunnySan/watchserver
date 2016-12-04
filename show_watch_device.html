@@ -112,8 +112,8 @@
 <script>
 	$(function() {
 		initMap();
+		getGeoFenceSetting();	//取得目前UUID的GeoFence設定
 		getIoVDeviceDetail();
-
 	});	//$(function() {
 
 </script>
@@ -252,5 +252,57 @@
 		client.disconnect();
 		location.href="set_geofence.html?uuid=" + uuid;
 	}
+
+	function getGeoFenceSetting(){	//取得目前UUID的GeoFence設定
+		var sData = "";
+		
+		getDataFromServer("ajaxGetGeoFenceSetting.jsp", sData, "json", function(data){
+			if (!data.resultCode || !data.resultText){
+				msgBox("Unable to get process result.");
+				return;
+			}else{
+				if (data.resultCode=="00000"){
+					var s = data.GeoFence;
+					if (beEmpty(s)){
+						//msgBox("There is no GeoFence setting for this device.");
+						return;
+					}
+					console.log("GeoFenceSetting: " + s);
+					s = JSON.parse(s);
+					if (beEmpty(s.east) || beEmpty(s.south) || beEmpty(s.west) || beEmpty(s.north)){
+						msgBox("GeoFence setting is incorrect.");
+						return;
+					}
+					myGeoFenceBounds = s;
+					var east = parseFloat(s.east);
+					var south = parseFloat(s.south);
+					var west = parseFloat(s.west);
+					var north = parseFloat(s.north);
+					//在地圖上畫出GeoFence的框框
+					myRectangle = new google.maps.Rectangle({
+						strokeColor: '#FF0000',
+						strokeOpacity: 0.8,
+						strokeWeight: 2,
+						fillColor: '#FF0000',
+						fillOpacity: 0.35,
+						map: map,
+						bounds: {
+							north: north,
+							south: south,
+							east: east,
+							west: west
+						}
+					});
+					clientPosition = new google.maps.LatLng((north+south)/2, (east+west)/2);	//GeoFence中心點
+					map.panTo(clientPosition);
+				}else{
+					//msgBox("Process failed: " + data.resultText);
+				}
+			}
+	
+		});	//getDataFromServer("xxx.jsp", sData, "json", function(data){
+
+	}	//function getGeoFenceSetting(){	//取得目前UUID的GeoFence設定
+
 </script>
 
