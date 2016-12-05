@@ -150,6 +150,8 @@
 	
 	var lat = "";
 	var lon = "";
+	
+	var isMQTTConnected = false;
 
 	function doMQTTConnect(){
 		client = new Paho.MQTT.Client("test.mosquitto.org", 8080, "TaisysIoVServer" + Math.floor((Math.random() * 10000000000) + 1));
@@ -166,6 +168,7 @@
 		$('#btnStopTracking').show();
 		$('#spNotConnected').hide();
 		$('#spConnected').show();
+		isMQTTConnected = true;
 	};
 	function onConnectFail(message) {
 		msgBox("Failed to connect to MQTT server: " + message.errorMessage);
@@ -174,6 +177,7 @@
 		$('#btnStopTracking').hide();
 		$('#spNotConnected').show();
 		$('#spConnected').hide();
+		isMQTTConnected = false;
 	};
 	function onConnectionLost(responseObject) {
 		if (responseObject.errorCode !== 0){
@@ -183,6 +187,7 @@
 			$('#btnStopTracking').hide();
 			$('#spNotConnected').show();
 			$('#spConnected').hide();
+			isMQTTConnected = false;
 		}
 	};
 	function onMessageArrived(message) {
@@ -212,11 +217,14 @@
 	}
 
 	function doStop() {
-		client.disconnect();
-		$('#btnStartTracking').show();
-		$('#btnStopTracking').hide();
-		$('#spNotConnected').show();
-		$('#spConnected').hide();
+		if (isMQTTConnected){
+			client.disconnect();
+			$('#btnStartTracking').show();
+			$('#btnStopTracking').hide();
+			$('#spNotConnected').show();
+			$('#spConnected').hide();
+		}
+		isMQTTConnected = false;
 	}
 
 	function updateDeviceInfo(){	//依據從MQTT收到的資訊，更新設備狀態
@@ -249,7 +257,9 @@
 	}
 
 	function doSetGeoFence(){
-		client.disconnect();
+		if (isMQTTConnected){
+			client.disconnect();
+		}
 		location.href="set_geofence.html?uuid=" + uuid;
 	}
 
