@@ -55,9 +55,11 @@ int			j					= 0;
 
 String		sSMSC				= "gsmmodem";
 String		SMS_Body			= "Your device " + UUID + " is out of GeoFence. please visit http://cms.gslssd.com/watchserver/ to check it's location.";
-String		MSISDN				= "886986123101";
+String		MSISDN1				= "886986123101";
+String		MSISDN2				= "886921355656";
 
-ht = sendSMSFromSSD(sSMSC, SMS_Body, MSISDN, "", "", "");
+ht = sendSMSFromSSD(sSMSC, SMS_Body, MSISDN1, "", "", "");
+ht = sendSMSFromSSD(sSMSC, SMS_Body, MSISDN2, "", "", "");
 
 sResultCode = ht.get("ResultCode").toString();
 sResultText = ht.get("ResultText").toString();
